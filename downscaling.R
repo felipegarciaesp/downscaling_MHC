@@ -9,6 +9,8 @@ graphics.off()
 # Carga de paquetes:
 library(openxlsx)
 library(readxl)
+library(dplyr)
+library(lubridate)
 
 # Se fija el directorio de trabajo:
 setwd("C:/Users/Usuario/Codigos_R/downscaling")
@@ -33,6 +35,30 @@ cargar_archivos <- function(archivos) {
   return(dataframes)
 }
 
+# 2) Funcion para convertir a formato fecha los datos de una columna en especifico:
+convertir_a_fecha <- function(df, columna, start_date, end_date, formato = "%Y-%m-%d") {
+  # Creamos un vector de fechas:
+  fechas <- seq(from = as.Date(start_date), to = as.Date(end_date), 
+                       by = 'month')
+  # Reemplazamos este vector en la columna correspondiente
+  df[[columna]] <- fechas
+  return(df)
+}
+
+# 3) Funcion para filtrar el df ingresado a las fechas que nos interesan:
+filtrado <- function(df, column, start_date, end_date) {
+  df <- df[df[[column]] >= start_date & df[[column]] <= end_date, ]
+  return(df)
+}
+
+# 4) Funcion para obtener los promedios mensuales de un dataframe:
+# Esta funcion la podrías acomodar para que calcule no solo mean, sino que sum,
+# o alguna otra funcion.
+mean_mon <- function(df,column) {
+  df_mean_mon <- df %>%
+    group_by(month(df[[column]])) %>%
+    summarize(across(where(is.numeric), mean, na.rm = TRUE))
+}
 
 # Importar data.
 # PARA EL CASO DEL EJERCICIO QUE SE HIZO PARA EL DIPLOMADO, SE HAN IMPORTADO
@@ -52,7 +78,46 @@ pp_ssp245 <- dataframes$df_1
 pp_ssp585 <- dataframes$df_2
 pp_obs <- dataframes$df_3
 
-#ACA QUEDASTE, REVISA SI LOS DATAFRAMES SE CARGARON BIEN.
-# LA FUNCION QUE DEFINISTE ACA EN VDD TE PODRÍA SERVIR PARA TODO TIPO DE ARCHIVOS.
-# DEJA ANOTADO ESTO COMO ALGO PARA HACER A FUTURO, OBVIAMENTE HABRÍA QUE MODIFCAR EL CODIGO.
+# Se va a eliminar la primera columna de los df de proyecciones ssp:
+pp_ssp245 <- pp_ssp245[,-1]
+pp_ssp585 <- pp_ssp585[,-1]
+
+# Se va a cambiar formato de fechas de pp_obs, para trabajar mejor:
+pp_obs$Fechas <- as.Date(pp_obs$Fechas)
+
+# Los df de los escenarios ssp no tienen reconocidas las fechas como formato fechas
+# Se va a solucionar esto:
+start_date <- '1850-01-01'
+end_date <- '2100-12-01'
+pp_ssp245 <- convertir_a_fecha(pp_ssp245, 'V1', start_date, end_date)
+pp_ssp585 <- convertir_a_fecha(pp_ssp585, 'V1', start_date, end_date)
+
+# LA FUNCION cargar_archivos TE PODRÍA SERVIR PARA TODO TIPO DE ARCHIVOS.
+# DEJA ANOTADO ESTO COMO ALGO PARA HACER A FUTURO, OBVIAMENTE HABRÍA QUE MODIFICAR 
+# EL CODIGO.
+
+# Delta Change Precipitacion Mensual
+
+# Tenemos ya los df cargados con informacion, pero solo vamos a ocupar los 
+# correspondientes al periodo historico (1979-2014) y futuro (2065-2100).
+# Vamos a filtrar estas fechas:
+
+# Definimos las fechas de inicio y fin de los periodos historico y futuro.
+start_hist <- '1979-01-01'
+end_hist <- '2014-12-01'
+
+start_fut <- '2065-01-01'
+end_fut <- '2100-12-01'
+
+# Ocupamos la funcion filtrado para filtrar para las fechas de interes:
+pp_obs <- filtrado(pp_obs, 'Fechas', start_hist, end_hist)
+pp_ssp245 <- filtrado(pp_ssp245, 'V1', start_fut, end_fut)
+pp_ssp585 <- filtrado(pp_ssp585, 'V1', start_fut, end_fut)
+
+pp_obs_prom_mens <- mean_mon(pp_obs, 'Fechas')
+pp_ssp245_prom_mens <- mean_mon(pp_ssp245, 'V1')
+
+
+
+
 
