@@ -11,6 +11,8 @@ library(openxlsx)
 library(readxl)
 library(dplyr)
 library(lubridate)
+library(ggplot2)
+library(tidyr)
 
 # Se fija el directorio de trabajo:
 setwd("C:/Users/Usuario/Codigos_R/downscaling")
@@ -57,7 +59,9 @@ filtrado <- function(df, column, start_date, end_date) {
 mean_mon <- function(df,column) {
   df_mean_mon <- df %>%
     group_by(month(df[[column]])) %>%
-    summarize(across(where(is.numeric), mean, na.rm = TRUE))
+    summarize(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+    rename(Mes = `month(df[[column]])`) # Nos aseguramos que la primera columna
+                                        # tenga como nombre 'Mes'.
 }
 
 # Importar data.
@@ -114,8 +118,42 @@ pp_obs <- filtrado(pp_obs, 'Fechas', start_hist, end_hist)
 pp_ssp245 <- filtrado(pp_ssp245, 'V1', start_fut, end_fut)
 pp_ssp585 <- filtrado(pp_ssp585, 'V1', start_fut, end_fut)
 
+# Obtenemos las precipitaciones medias mensuales de las serie observada y para
+# ambas proyecciones ssp:
 pp_obs_prom_mens <- mean_mon(pp_obs, 'Fechas')
 pp_ssp245_prom_mens <- mean_mon(pp_ssp245, 'V1')
+pp_ssp585_prom_mens <- mean_mon(pp_ssp585, 'V1')
+
+# Graficos:
+
+# Convierte el dataframe de los GCM a formato largo
+pp_ssp585_long <- pivot_longer(pp_ssp585_prom_mens, cols = -Mes, names_to = "GCM", values_to = "Pp")
+
+# Crea el gráfico de líneas
+ggplot() +
+  # Línea para cada GCM
+  geom_line(data = pp_ssp585_long, aes(x = Mes, y = Pp, group = GCM), color = "blue", size = 0.5) +
+  # Línea para la serie observada
+  geom_line(data = pp_obs_prom_mens, aes(x = Mes, y = pp_obs_prom_mens[[2]]), color = "red", size = 1.5) +
+  # Títulos y etiquetas
+  labs(title = "Precipitación Mensual Promedio",
+       x = "Mes del Año",
+       y = "Precipitación (mm)") +
+  # Ajustes de tema
+  theme_minimal() +
+  theme(legend.position = "none", # Elimina la leyenda automática
+        axis.text.x = element_text(angle = 0, hjust = 1)) +
+  # Ajustes del eje X
+  scale_x_continuous(breaks = 1:12) +
+  # Añadir la leyenda manualmente con líneas representativas
+  annotate("rect", xmin = 1, xmax = 4, ymin = max(pp_ssp585_long$Pp) * 1.1, 
+           ymax = max(pp_ssp585_long$Pp) * 1.3, alpha = 0.5, color = "black", fill = "white") +
+  annotate("segment", x = 1.2, xend = 1.4, y = max(pp_ssp585_long$Pp) * 1.25, yend = max(pp_ssp585_long$Pp) * 1.25, color = "blue", size = 0.5) +
+  annotate("text", x = 1.5, y = max(pp_ssp585_long$Pp) * 1.25, 
+           label = "SSP 5-8.5", color = "blue", size = 4, hjust = 0) +
+  annotate("segment", x = 1.2, xend = 1.4, y = max(pp_ssp585_long$Pp) * 1.2, yend = max(pp_ssp585_long$Pp) * 1.2, color = "red", size = 1.5) +
+  annotate("text", x = 1.5, y = max(pp_ssp585_long$Pp) * 1.2, 
+           label = "Obs", color = "red", size = 4, hjust = 0)
 
 
 
