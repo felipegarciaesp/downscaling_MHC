@@ -115,19 +115,21 @@ end_fut <- '2100-12-01'
 
 # Ocupamos la funcion filtrado para filtrar para las fechas de interes:
 pp_obs <- filtrado(pp_obs, 'Fechas', start_hist, end_hist)
-pp_ssp245 <- filtrado(pp_ssp245, 'V1', start_fut, end_fut)
-pp_ssp585 <- filtrado(pp_ssp585, 'V1', start_fut, end_fut)
+pp_ssp245_hist <- filtrado(pp_ssp245, 'V1', start_hist, end_hist)
+pp_ssp585_hist <- filtrado(pp_ssp585, 'V1', start_hist, end_hist)
+pp_ssp245_fut <- filtrado(pp_ssp245, 'V1', start_fut, end_fut)
+pp_ssp585_fut <- filtrado(pp_ssp585, 'V1', start_fut, end_fut)
 
 # Obtenemos las precipitaciones medias mensuales de las serie observada y para
-# ambas proyecciones ssp:
+# la serie historica de ambas proyecciones ssp:
 pp_obs_prom_mens <- mean_mon(pp_obs, 'Fechas')
-pp_ssp245_prom_mens <- mean_mon(pp_ssp245, 'V1')
-pp_ssp585_prom_mens <- mean_mon(pp_ssp585, 'V1')
+pp_ssp245_prom_mens_hist <- mean_mon(pp_ssp245_hist, 'V1')
+pp_ssp585_prom_mens_hist <- mean_mon(pp_ssp585_hist, 'V1')
 
 # Graficos:
 
 # Convierte el dataframe de los GCM a formato largo
-pp_ssp585_long <- pivot_longer(pp_ssp585_prom_mens, cols = -Mes, names_to = "GCM", values_to = "Pp")
+pp_ssp585_long <- pivot_longer(pp_ssp585_prom_mens_hist, cols = -Mes, names_to = "GCM", values_to = "Pp")
 
 # Crea el gráfico de líneas
 ggplot() +
