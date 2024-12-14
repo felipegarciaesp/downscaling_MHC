@@ -58,11 +58,47 @@ filtrado <- function(df, column, start_date, end_date) {
 # o alguna otra funcion.
 mean_mon <- function(df,column) {
   df_mean_mon <- df %>%
-    group_by(month(df[[column]])) %>%
-    summarize(across(where(is.numeric), mean, na.rm = TRUE)) %>%
-    rename(Mes = `month(df[[column]])`) # Nos aseguramos que la primera columna
-                                        # tenga como nombre 'Mes'.
+    group_by(Mes = month(df[[column]])) %>%
+    summarize(across(where(is.numeric), mean, na.rm = TRUE))
 }
+
+# 5) Funcion para graficar las series mensuales:
+graphic_month <- function(df_obs, df_gcm, meses) {
+  # Convierte el dataframe de los GCM a formato largo
+  df_gcm_long <- pivot_longer(df_gcm, cols = -all_of(meses), names_to = "GCM", values_to = "Pp")
+  
+  # Crea el gráfico de líneas
+  ggplot() +
+    # Línea para cada GCM
+    geom_line(data = df_gcm_long, aes_string(x = meses, y = "Pp", group = "GCM"), color = "blue", size = 0.5) +
+    # Línea para la serie observada
+    geom_line(data = df_obs, aes_string(x = meses, y = colnames(df_obs)[2]), color = "red", size = 1.5) +
+    # Títulos y etiquetas
+    labs(title = "Precipitación Mensual Promedio",
+         x = "Mes del Año",
+         y = "Precipitación (mm)") +
+    # Ajustes de tema
+    theme_minimal() +
+    theme(legend.position = "none", # Elimina la leyenda automática
+          axis.text.x = element_text(angle = 0, hjust = 1),
+          plot.title = element_text(hjust = 0.5)) + # Centra el título
+    # Ajustes del eje X
+    scale_x_continuous(breaks = 1:12) +
+    # Añadir la leyenda manualmente con líneas representativas
+    annotate("rect", xmin = 1, xmax = 4, ymin = max(df_gcm_long$Pp) * 1.1, 
+             ymax = max(df_gcm_long$Pp) * 1.3, alpha = 0.5, color = "black", fill = "white") +
+    annotate("segment", x = 1.2, xend = 1.4, y = max(df_gcm_long$Pp) * 1.25, yend = max(df_gcm_long$Pp) * 1.25, color = "blue", size = 0.5) +
+    annotate("text", x = 1.5, y = max(df_gcm_long$Pp) * 1.25, 
+             label = "SSP 5-8.5", color = "blue", size = 4, hjust = 0) +
+    annotate("segment", x = 1.2, xend = 1.4, y = max(df_gcm_long$Pp) * 1.2, yend = max(df_gcm_long$Pp) * 1.2, color = "red", size = 1.5) +
+    annotate("text", x = 1.5, y = max(df_gcm_long$Pp) * 1.2, 
+             label = "Obs", color = "red", size = 4, hjust = 0)
+}
+
+
+
+
+
 
 # Importar data.
 # PARA EL CASO DEL EJERCICIO QUE SE HIZO PARA EL DIPLOMADO, SE HAN IMPORTADO
@@ -128,35 +164,8 @@ pp_ssp585_prom_mens_hist <- mean_mon(pp_ssp585_hist, 'V1')
 
 # Graficos:
 
-# Convierte el dataframe de los GCM a formato largo
-pp_ssp585_long <- pivot_longer(pp_ssp585_prom_mens_hist, cols = -Mes, names_to = "GCM", values_to = "Pp")
-
-# Crea el gráfico de líneas
-ggplot() +
-  # Línea para cada GCM
-  geom_line(data = pp_ssp585_long, aes(x = Mes, y = Pp, group = GCM), color = "blue", size = 0.5) +
-  # Línea para la serie observada
-  geom_line(data = pp_obs_prom_mens, aes(x = Mes, y = pp_obs_prom_mens[[2]]), color = "red", size = 1.5) +
-  # Títulos y etiquetas
-  labs(title = "Precipitación Mensual Promedio",
-       x = "Mes del Año",
-       y = "Precipitación (mm)") +
-  # Ajustes de tema
-  theme_minimal() +
-  theme(legend.position = "none", # Elimina la leyenda automática
-        axis.text.x = element_text(angle = 0, hjust = 1)) +
-  # Ajustes del eje X
-  scale_x_continuous(breaks = 1:12) +
-  # Añadir la leyenda manualmente con líneas representativas
-  annotate("rect", xmin = 1, xmax = 4, ymin = max(pp_ssp585_long$Pp) * 1.1, 
-           ymax = max(pp_ssp585_long$Pp) * 1.3, alpha = 0.5, color = "black", fill = "white") +
-  annotate("segment", x = 1.2, xend = 1.4, y = max(pp_ssp585_long$Pp) * 1.25, yend = max(pp_ssp585_long$Pp) * 1.25, color = "blue", size = 0.5) +
-  annotate("text", x = 1.5, y = max(pp_ssp585_long$Pp) * 1.25, 
-           label = "SSP 5-8.5", color = "blue", size = 4, hjust = 0) +
-  annotate("segment", x = 1.2, xend = 1.4, y = max(pp_ssp585_long$Pp) * 1.2, yend = max(pp_ssp585_long$Pp) * 1.2, color = "red", size = 1.5) +
-  annotate("text", x = 1.5, y = max(pp_ssp585_long$Pp) * 1.2, 
-           label = "Obs", color = "red", size = 4, hjust = 0)
-
+# Se muestra grafico de precipitaciones medias mensuales observadas y de ssp585:
+graphic_month(pp_obs_prom_mens, pp_ssp585_prom_mens_hist, 'Mes')
 
 
 
