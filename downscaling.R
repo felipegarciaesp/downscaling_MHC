@@ -262,3 +262,5 @@ ggplot() +
   ylim(-1.5,1.5) + #Se ajusta rango del eje Y.
   scale_x_continuous(breaks = 1:12)
 
+
+
